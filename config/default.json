@@ -1,0 +1,32 @@
+{
+    "port" : "8000",
+    "mongodbUrl" : "mongodb+srv://harrie:Harr1350n@cluster0.6uiej.mongodb.net/digistore",
+    "adminSecretToken" : "Admin231",
+    "jwtSecret" : "jwt1234s3cr3t",
+    "loginLink": "http://localhost:8005/auth",
+    "appPrefix": "/api/v1",
+    "emailService": {
+        "testDomain" : "sandbox320e48ce0a474756b932b1958c9f3665.mailgun.org",
+        "privateAPIKey": "5d87ddf3747e3662223ac07dea555ed6-5d2b1caa-bc11d30b",
+        "emailTemplates": {
+            "forgotPassword": "forgot-password-template",
+            "verifyEmail": "verifyemail-template",
+            "orderSuccess": "order-success-template"
+        }
+    },       
+    "cloudinary": { 
+        "cloud_name": "dcc1x6mlf",
+        "api_key": "544198187387118", 
+        "api_secret": "gzaUl6TZ0fTkbkimqivbOT2_J3I",
+        "folderPath": "digistore/products",
+        "publicId_prefix": "digistore_products_",
+        "bigSize": "400X400"
+     },
+     "stripe": {
+        "publishable_key" : "pk_test_51OH7iGI8PgSJyqxdzCUgiAvmakLCASoBKkiu9M6YYgIcm7QXFCtWoVRHqKBOxuQPR2wv5VMX1HwG10Il0mM6mJwB009on2UI7Y",
+        "secret_key": "sk_test_51OH7iGI8PgSJyqxd5ZjJRRGdzIuISX3nJEvBwRQiCAHrmFyF5JepdtCmoMnvfndMLTRB43q6d6kcKMRkTcL3wl2J00lrzNyK1R",
+        "successUrl": "http://localhost:8000/order-success",
+        "cancelUrl": "http://localhost:8000/order-cancel",
+        "webhook_secret": "whsec_899fa8d3cb2d3833330a734612d06612bf9c65dc21115d71a5da632a1b31db8a"
+     }
+}
