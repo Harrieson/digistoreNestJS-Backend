@@ -1,16 +1,32 @@
 import { Inject, Injectable } from '@nestjs/common';
+import cloudinary from 'cloudinary';
+import config from 'config';
+import { unlinkSync } from 'fs';
 import { InjectStripe } from 'nestjs-stripe';
+import qsToMongo from 'qs-to-mongo';
 import { ProductRepository } from 'src/shared/repositories/product.repository';
+import { Products } from 'src/shared/schema/products';
 import Stripe from 'stripe';
 import { CreateProductDto } from './dto/create-product.dto';
+import { GetProductQueryDto } from './dto/get-product-query-dto';
 
 @Injectable()
 export class ProductsService {
   constructor(
     @Inject(ProductRepository) private readonly productDB: ProductRepository,
     @InjectStripe() private readonly stripeClient: Stripe,
-  ) {}
-  async create(createProductDto: CreateProductDto) {
+  ) {
+    cloudinary.v2.config({
+      cloud_name: config.get('cloudinary.cloud_name'),
+      api_key: config.get('cloudinary.api_key'),
+      api_secret: config.get('cloudinary.api_secret'),
+    });
+  }
+  async create(createProductDto: CreateProductDto): Promise<{
+    message: string;
+    result: Products;
+    success: boolean;
+  }> {
     try {
       if (!createProductDto.stripeProductId) {
         const createdProductInStripe = await this.stripeClient.products.create({
@@ -30,19 +46,46 @@ export class ProductsService {
     }
   }
 
-  findAll() {
-    return `This action returns all products`;
-  }
-
-  async findOneProduct(id: string) {
+  async findAllProducts(query: GetProductQueryDto) {
     try {
-      const product = await this.productDB.findOne({ _id: id });
-      if (!product) {
-        throw new Error('Product not found');
+      let callForHomePage = false;
+      if (query.homepage) {
+        callForHomePage = true;
       }
+      delete query.homepage;
+      const { criteria, options, links } = qsToMongo(query);
+      if (callForHomePage) {
+        const products = await this.productDB.findProductWithGroupBy();
+        return {
+          message:
+            products.length > 0
+              ? 'Products fetched successfully'
+              : 'No Products Found',
+          result: products,
+          success: true,
+        };
+      }
+      const { totalProductCount, products } = await this.productDB.find(
+        criteria,
+        options,
+      );
       return {
-        message: 'Product fetched successfully',
-        result: product,
+        message:
+          products.length > 0
+            ? 'Products fetched successfully'
+            : 'No products found',
+        result: {
+          metadata: {
+            skip: options.skip || 0,
+            limit: options.limit || 10,
+            total: totalProductCount,
+            pages: options.limit
+              ? Math.ceil(totalProductCount / options.limit)
+              : 1,
+            links: links('/', totalProductCount),
+          },
+          products,
+        },
         success: true,
       };
     } catch (error) {
@@ -50,7 +93,39 @@ export class ProductsService {
     }
   }
 
-  async update(id: string, updateProductDto: CreateProductDto) {
+  async findOneProduct(id: string): Promise<{
+    message: string;
+    result: { product: Products; relatedProducts: Products[] };
+    success: boolean;
+  }> {
+    try {
+      const product = await this.productDB.findOne({ _id: id });
+      if (!product) {
+        throw new Error('Product not found');
+      }
+      const relatedProducts: Products[] =
+        await this.productDB.findRealtedProducts({
+          category: product.category,
+          _id: { $ne: id },
+        });
+      return {
+        message: 'Product fetched successfully',
+        result: { product, relatedProducts },
+        success: true,
+      };
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  async update(
+    id: string,
+    updateProductDto: CreateProductDto,
+  ): Promise<{
+    message: string;
+    result: Products;
+    success: boolean;
+  }> {
     try {
       const productExist = await this.productDB.findOne({ _id: id });
       if (!productExist) {
@@ -75,7 +150,76 @@ export class ProductsService {
     }
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} product`;
+  async remove(id: string): Promise<{
+    message: string;
+    success: boolean;
+  }> {
+    try {
+      const productExists = await this.productDB.findOne({ _id: id });
+      if (!productExists) {
+        throw new Error('Product does not exist');
+      }
+      await this.productDB.findOneAndDelete({ _id: id });
+      await this.stripeClient.products.del(productExists.stripeProductId);
+
+      return {
+        message: 'Product deleted successfully',
+        success: true,
+      };
+    } catch (error) {
+      throw error;
+    }
+  }
+  async uploadProductImage(
+    id: string,
+    file: any,
+  ): Promise<{
+    message: string;
+    success: boolean;
+    result: string;
+  }> {
+    try {
+      const product = await this.productDB.findOne({ _id: id });
+      if (!product) {
+        throw new Error('Product does not exist');
+      }
+      if (product.imageDetails?.public_id) {
+        await cloudinary.v2.uploader.destroy(product.imageDetails.public_id, {
+          invalidate: true,
+        });
+      }
+      const resOfCloudinary = await cloudinary.v2.uploader.upload(file.path, {
+        folder: config.get('cloudinary.folderPath'),
+        public_id: `${config.get('cloudinary.publicId_prefix')}${Date.now()}`,
+        transformation: [
+          {
+            width: config.get('cloudinary.bigSize').toString().split('X')[0],
+            height: config.get('cloudinary.bigSize').toString().split('X')[1],
+            crop: 'fill',
+          },
+          {
+            quality: 'auto',
+          },
+        ],
+      });
+      unlinkSync(file.path);
+      await this.productDB.findOneAndUpdate(
+        { _id: id },
+        {
+          imageDetails: resOfCloudinary,
+          image: resOfCloudinary.secure_url,
+        },
+      );
+      await this.stripeClient.products.update(product.stripeProductId, {
+        images: [resOfCloudinary.secure_url],
+      });
+      return {
+        message: 'Image uploaded successfully',
+        success: true,
+        result: resOfCloudinary.secure_url,
+      };
+    } catch (error) {
+      throw error;
+    }
   }
 }

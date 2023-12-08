@@ -40,6 +40,7 @@
     "form-data": "^4.0.0",
     "jsonwebtoken": "^9.0.2",
     "nestjs-stripe": "^1.0.0",
+    "qs-to-mongo": "^3.0.0",
     "reflect-metadata": "^0.1.13",
     "rxjs": "^7.8.1",
     "stripe": "^14.5.0"

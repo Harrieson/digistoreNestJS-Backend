@@ -1,4 +1,9 @@
-import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
+import {
+  MiddlewareConsumer,
+  Module,
+  NestModule,
+  RequestMethod,
+} from '@nestjs/common';
 import { APP_GUARD } from '@nestjs/core';
 import { MongooseModule } from '@nestjs/mongoose';
 import config from 'config';
@@ -31,6 +36,18 @@ import { ProductsService } from './products.service';
 })
 export class ProductsModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {
-    consumer.apply(AuthMiddleware).forRoutes(ProductsController);
+    consumer
+      .apply(AuthMiddleware)
+      .exclude(
+        {
+          path: `${config.get('appPrefix')}/products`,
+          method: RequestMethod.GET,
+        },
+        {
+          path: `${config.get('appPrefix')}/products/:id`,
+          method: RequestMethod.GET,
+        },
+      )
+      .forRoutes(ProductsController);
   }
 }
