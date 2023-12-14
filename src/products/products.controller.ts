@@ -7,6 +7,7 @@ import {
   Param,
   Patch,
   Post,
+  Put,
   Query,
   UploadedFile,
   UseInterceptors,
@@ -17,6 +18,7 @@ import { Roles } from 'src/shared/middleware/role.decorators';
 import { userTypes } from 'src/shared/schema/users';
 import { CreateProductDto } from './dto/create-product.dto';
 import { GetProductQueryDto } from './dto/get-product-query-dto';
+import { ProductSkuDto, ProductSkuDtoArray } from './dto/product-sku.dto';
 import { ProductsService } from './products.service';
 
 @Controller('products')
@@ -70,5 +72,29 @@ export class ProductsController {
     @UploadedFile() file: ParameterDecorator,
   ) {
     return await this.productsService.uploadProductImage(id, file);
+  }
+  @Post('/:productId/skus')
+  @Roles(userTypes.ADMIN)
+  async updateProductSku(
+    @Param('productId') productId: string,
+    @Body() updateProductSkuDto: ProductSkuDtoArray,
+  ) {
+    return await this.productsService.updateProductSku(
+      productId,
+      updateProductSkuDto,
+    );
+  }
+  @Put('/:productId/sku/:skuId')
+  @Roles(userTypes.ADMIN)
+  async updateProductSkuById(
+    @Param('productId') productId: string,
+    @Param('skuId') skuId: string,
+    @Body() updateProductSkuDto: ProductSkuDto,
+  ) {
+    return await this.productsService.updateProductSkuById(
+      productId,
+      skuId,
+      updateProductSkuDto,
+    );
   }
 }

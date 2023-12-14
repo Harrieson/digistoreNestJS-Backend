@@ -40,7 +40,7 @@ export class SkuDetails extends mongoose.Document {
   skuName: string;
 
   @Prop({})
-  price: string;
+  price: number;
 
   @Prop({})
   validity: number;
