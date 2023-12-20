@@ -3,12 +3,14 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { ParsedOptions } from 'qs-to-mongo/lib/query/options-to-mongo';
 import { CreateProductDto } from 'src/products/dto/create-product.dto';
+import { License } from '../schema/license';
 import { Products } from '../schema/products';
 
 @Injectable()
 export class ProductRepository {
   constructor(
     @InjectModel(Products.name) private readonly productModel: Model<Products>,
+    @InjectModel(License.name) private readonly licenseModel: Model<License>,
   ) {}
   async create(product: CreateProductDto) {
     const createdProduct = await this.productModel.create(product);
@@ -70,5 +72,21 @@ export class ProductRepository {
       },
     ]);
     return products;
+  }
+  async createLicense(productId: string, skuId: string, licenseKey: string) {
+    const license = await this.licenseModel.create({
+      productId,
+      skuId,
+      licenseKey,
+    });
+    return license;
+  }
+  async removeLicense(query: any) {
+    const license = await this.licenseModel.findOneAndDelete(query);
+    return license;
+  }
+  async findLicense(query: any) {
+    const license = await this.licenseModel.findOne(query);
+    return license;
   }
 }

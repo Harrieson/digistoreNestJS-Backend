@@ -29,6 +29,7 @@ export class ProductsService {
     success: boolean;
   }> {
     try {
+      // create product in stripe.
       if (!createProductDto.stripeProductId) {
         const createdProductInStripe = await this.stripeClient.products.create({
           name: createProductDto.productName,
@@ -224,18 +225,58 @@ export class ProductsService {
     }
   }
   // Create sku for an existing product.
+  // async updateProductSku(productId: string, data: ProductSkuDtoArray) {
+  //   try {
+  //     const product = await this.productDB.findOne({ _id: productId });
+  //     if (!product) {
+  //       throw new Error('Product does not exist');
+  //     }
+  //     const skuCode = Math.random().toString(36).substring(2, 5) + Date.now();
+  //     for (let i = 0; i < data.skuDetails.length; i++) {
+  //       if (!data.skuDetails[i].stripePriceId) {
+  //         const stripePriceDetails = await this.stripeClient.prices.create({
+  //           unit_amount: data.skuDetails[i].price * 100,
+  //           currency: 'Kes',
+  //           product: product.stripeProductId,
+  //           metadata: {
+  //             skuCode: skuCode,
+  //             lifetime: data.skuDetails[i].lifetime + '',
+  //             productId: productId,
+  //             price: data.skuDetails[i].price,
+  //             productName: product.productName,
+  //             productImage: product.image,
+  //           },
+  //         });
+  //         data.skuDetails[i].stripePriceId = stripePriceDetails.id;
+  //       }
+  //       data.skuDetails[i].skuCode = skuCode;
+  //     }
+  //     await this.productDB.findOneAndUpdate(
+  //       { _id: productId },
+  //       { $push: { skuDetails: data.skuDetails } },
+  //     );
+  //     return {
+  //       message: 'Product sku updated successfully',
+  //       success: true,
+  //       result: null,
+  //     };
+  //   } catch (error) {
+  //     throw error;
+  //   }
+  // }
   async updateProductSku(productId: string, data: ProductSkuDtoArray) {
     try {
       const product = await this.productDB.findOne({ _id: productId });
       if (!product) {
         throw new Error('Product does not exist');
       }
+
       const skuCode = Math.random().toString(36).substring(2, 5) + Date.now();
       for (let i = 0; i < data.skuDetails.length; i++) {
         if (!data.skuDetails[i].stripePriceId) {
-          const stripePriceDetails = await this.stripeClient.prices.create({
+          const stripPriceDetails = await this.stripeClient.prices.create({
             unit_amount: data.skuDetails[i].price * 100,
-            currency: 'Kes',
+            currency: 'inr',
             product: product.stripeProductId,
             metadata: {
               skuCode: skuCode,
@@ -246,14 +287,16 @@ export class ProductsService {
               productImage: product.image,
             },
           });
-          data.skuDetails[i].stripePriceId = stripePriceDetails.id;
+          data.skuDetails[i].stripePriceId = stripPriceDetails.id;
         }
         data.skuDetails[i].skuCode = skuCode;
       }
+
       await this.productDB.findOneAndUpdate(
         { _id: productId },
         { $push: { skuDetails: data.skuDetails } },
       );
+
       return {
         message: 'Product sku updated successfully',
         success: true,
@@ -301,6 +344,46 @@ export class ProductsService {
         message: 'Product Updated Successfully',
         success: true,
         result: null,
+      };
+    } catch (error) {
+      throw error;
+    }
+  }
+  async addProductSkuLicense(
+    productId: string,
+    skuId: string,
+    licenseKey: string,
+  ) {
+    try {
+      const product = await this.productDB.findOne({ _id: productId });
+      if (!product) {
+        throw new Error(' Product Does Not Exist');
+      }
+      const sku = product.skuDetails.find((sku) => sku._id == skuId);
+      if (!sku) {
+        throw new Error('Sku does not exist');
+      }
+      const result = await this.productDB.createLicense(
+        productId,
+        skuId,
+        licenseKey,
+      );
+      return {
+        message: 'License key added successfully',
+        success: true,
+        result: result,
+      };
+    } catch (error) {
+      throw error;
+    }
+  }
+  async removeProductsSkuLicense(id: string) {
+    try {
+      const result = await this.productDB.removeLicense({ _id: id });
+      return {
+        message: 'license key removed successfully',
+        success: true,
+        result: result,
       };
     } catch (error) {
       throw error;

@@ -12,6 +12,7 @@ import { AuthMiddleware } from 'src/shared/middleware/auth';
 import { RolesGuard } from 'src/shared/middleware/roles.guard';
 import { ProductRepository } from 'src/shared/repositories/product.repository';
 import { UserRepository } from 'src/shared/repositories/user.repository';
+import { License, LicenseSchema } from 'src/shared/schema/license';
 import { ProductSchema, Products } from 'src/shared/schema/products';
 import { UserSchema, Users } from 'src/shared/schema/users';
 import { ProductsController } from './products.controller';
@@ -28,6 +29,7 @@ import { ProductsService } from './products.service';
   imports: [
     MongooseModule.forFeature([{ name: Products.name, schema: ProductSchema }]),
     MongooseModule.forFeature([{ name: Users.name, schema: UserSchema }]),
+    MongooseModule.forFeature([{ name: License.name, schema: LicenseSchema }]),
     StripeModule.forRoot({
       apiKey: config.get('stripe.secret_key'),
       apiVersion: null,

@@ -97,4 +97,26 @@ export class ProductsController {
       updateProductSkuDto,
     );
   }
+
+  @Post(':/productId/skus/:skuId/licenses')
+  @Roles(userTypes.ADMIN)
+  async addProductSkuLicense(
+    @Param('productId') productId: string,
+    @Param('skuId') skuId: string,
+    @Body('licenseKey') licenseKey: string ,
+  ) {
+    return await this.productsService.addProductSkuLicense(
+      productId,
+      skuId,
+      licenseKey,
+    );
+  }
+
+  @Delete('/:productId/skus/:skuId/licenses/:licenseId')
+  @Roles(userTypes.ADMIN)
+  async removeProductSkuLicense(
+    @Param('productId') productId: string,
+    @Param('skuId') skuId: string,
+    @Param('licenseId') licenseId: string,
+  ) {}
 }
